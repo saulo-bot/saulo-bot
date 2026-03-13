@@ -7,6 +7,50 @@ import requests
 import schedule
 import yfinance as yf
 
+OZ_TO_GRAM = 31.1035
+
+def pegar_dolar():
+    try:
+        hist = yf.Ticker("USDBRL=X").history(period="5d")
+        return float(hist["Close"].iloc[-1])
+    except:
+        return None
+
+
+def pegar_metal_em_real_por_grama(simbolo):
+    try:
+        dolar = pegar_dolar()
+        if dolar is None:
+            return None, None
+
+        hist = yf.Ticker(simbolo).history(period="5d")
+        if hist.empty or len(hist) < 2:
+            return None, None
+
+        atual_usd_oz = float(hist["Close"].iloc[-1])
+        anterior_usd_oz = float(hist["Close"].iloc[-2])
+
+        atual_brl_g = (atual_usd_oz / OZ_TO_GRAM) * dolar
+        anterior_brl_g = (anterior_usd_oz / OZ_TO_GRAM) * dolar
+
+        variacao = ((atual_brl_g - anterior_brl_g) / anterior_brl_g) * 100
+
+        return atual_brl_g, variacao
+
+    except:
+        return None, None
+
+
+def formatar_metal(nome, simbolo, emoji):
+    preco, variacao = pegar_metal_em_real_por_grama(simbolo)
+
+    if preco is None:
+        return f"{emoji} {nome}: n/d\n   n/d"
+
+    seta = "▲" if variacao > 0 else "▼"
+    sinal = "+" if variacao > 0 else ""
+
+    return f"{emoji} {nome}: R$ {preco:,.2f}/g\n   {seta} {sinal}{variacao:.2f}%"
 
 # =========================================================
 # CONFIGURAÇÕES
@@ -113,14 +157,14 @@ def montar_bloco_indicadores():
         "INDICADORES DE MERCADO",
         "━━━━━━━━━━━━━━━━━━━━",
         "",
-        formatar_linha_ativo("Dólar", "USDBRL=X", "💵", "R$"),
-        "",
-        formatar_linha_ativo("Euro", "EURBRL=X", "💶", "R$"),
-        "",
-        # Ouro e prata são futuros internacionais; melhor exibir em US$
-        formatar_linha_ativo("Ouro", "GC=F", "🥇", "US$"),
-        "",
-        formatar_linha_ativo("Prata", "SI=F", "🥈", "US$"),
+formatar_linha_ativo("Dólar", "USDBRL=X", "💵", "R$"),
+
+formatar_linha_ativo("Euro", "EURBRL=X", "💶", "R$"),
+
+formatar_metal("Ouro", "GC=F", "🥇"),
+
+formatar_metal("Prata", "SI=F", "🥈"),
+
     ]
     return "\n".join(linhas)
 
