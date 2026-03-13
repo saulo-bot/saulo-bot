@@ -16,7 +16,6 @@ CHAT_ID_PADRAO = os.getenv("TELEGRAM_CHAT_ID", "")
 
 API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 ULTIMO_UPDATE_ID = None
-
 OZ_TO_GRAM = 31.1035
 
 
@@ -101,9 +100,6 @@ def pegar_dolar_brl():
 
 
 def pegar_metal_em_real_por_grama(simbolo: str):
-    """
-    Converte metal de USD/onça troy para BRL/grama.
-    """
     try:
         dolar = pegar_dolar_brl()
         fechamentos = pegar_hist(simbolo)
@@ -130,7 +126,7 @@ def pegar_metal_em_real_por_grama(simbolo: str):
 # =========================================================
 # FORMATAÇÃO
 # =========================================================
-def formatar_numero_brl(valor: float, casas: int = 4) -> str:
+def formatar_numero(valor: float, casas: int = 2) -> str:
     texto = f"{valor:,.{casas}f}"
     return texto.replace(",", "X").replace(".", ",").replace("X", ".")
 
@@ -138,7 +134,6 @@ def formatar_numero_brl(valor: float, casas: int = 4) -> str:
 def formatar_variacao(variacao: float) -> str:
     if variacao is None:
         return "n/d"
-
     if variacao > 0:
         return f"▲ +{variacao:.2f}%"
     if variacao < 0:
@@ -146,108 +141,105 @@ def formatar_variacao(variacao: float) -> str:
     return "• 0.00%"
 
 
-def formatar_linha_ativo(nome: str, simbolo: str, emoji: str, prefixo_moeda: str):
+def formatar_linha_ativo(nome: str, simbolo: str, emoji: str, casas: int = 4):
     preco, variacao = pegar_preco_variacao(simbolo)
 
     if preco is None:
         return f"{emoji} {nome}: n/d\n   n/d"
 
     return (
-        f"{emoji} {nome}: {prefixo_moeda} {formatar_numero_brl(preco, 4)}\n"
+        f"{emoji} {nome}: R$ {formatar_numero(preco, casas)}\n"
         f"   {formatar_variacao(variacao)}"
     )
 
 
-def formatar_metal(nome: str, simbolo: str, emoji: str):
-    preco, variacao = pegar_metal_em_real_por_grama(simbolo)
-
+def formatar_metal(nome: str, preco: float, variacao: float, emoji: str):
     if preco is None:
         return f"{emoji} {nome}: n/d\n   n/d"
 
     return (
-        f"{emoji} {nome}: R$ {formatar_numero_brl(preco, 2)}/g\n"
+        f"{emoji} {nome}: R$ {formatar_numero(preco, 2)}/g\n"
         f"   {formatar_variacao(variacao)}"
     )
 
 
-def formatar_metal_teor(nome: str, preco_24k_g: float, teor: float, emoji: str):
-    if preco_24k_g is None:
+def formatar_metal_teor(nome: str, preco_base: float, teor: float, emoji: str):
+    if preco_base is None:
         return f"{emoji} {nome}: n/d"
 
-    preco = preco_24k_g * teor
-    return f"{emoji} {nome}: R$ {formatar_numero_brl(preco, 2)}/g"
+    preco = preco_base * teor
+    return f"{emoji} {nome}: R$ {formatar_numero(preco, 2)}/g"
 
 
 # =========================================================
-# BLOCOS DA MENSAGEM
+# BLOCOS
 # =========================================================
 def montar_bloco_indicadores():
-    ouro_24k_preco, ouro_24k_variacao = pegar_metal_em_real_por_grama("GC=F")
-    prata_pura_preco, prata_pura_variacao = pegar_metal_em_real_por_grama("SI=F")
+    ouro_preco, ouro_variacao = pegar_metal_em_real_por_grama("GC=F")
+    prata_preco, prata_variacao = pegar_metal_em_real_por_grama("SI=F")
 
     linhas = [
+        "━━━━━━━━━━━━━━━━━━━━",
         "INDICADORES DE MERCADO",
         "━━━━━━━━━━━━━━━━━━━━",
         "",
-        formatar_linha_ativo("Dólar", "USDBRL=X", "💵", "R$"),
+        formatar_linha_ativo("Dólar", "USDBRL=X", "💵"),
         "",
-        formatar_linha_ativo("Euro", "EURBRL=X", "💶", "R$"),
+        formatar_linha_ativo("Euro", "EURBRL=X", "💶"),
         "",
-        (
-            f"🥇 Ouro: R$ {formatar_numero_brl(ouro_24k_preco, 2)}/g\n"
-            f"   {formatar_variacao(ouro_24k_variacao)}"
-            if ouro_24k_preco is not None
-            else "🥇 Ouro: n/d\n   n/d"
-        ),
+        formatar_metal("Ouro", ouro_preco, ouro_variacao, "🥇"),
         "",
-        (
-            f"🥈 Prata: R$ {formatar_numero_brl(prata_pura_preco, 2)}/g\n"
-            f"   {formatar_variacao(prata_pura_variacao)}"
-            if prata_pura_preco is not None
-            else "🥈 Prata: n/d\n   n/d"
-        ),
-        "",
+        formatar_metal("Prata", prata_preco, prata_variacao, "🥈"),
+    ]
+
+    return "\n".join(linhas)
+
+
+def montar_bloco_metais_joalheria():
+    ouro_preco, _ = pegar_metal_em_real_por_grama("GC=F")
+    prata_preco, _ = pegar_metal_em_real_por_grama("SI=F")
+
+    linhas = [
+        "━━━━━━━━━━━━━━━━━━━━",
         "METAIS PARA JOALHERIA",
         "━━━━━━━━━━━━━━━━━━━━",
         "",
-        formatar_metal_teor("Ouro 24k", ouro_24k_preco, 1.0, "🟡"),
-        formatar_metal_teor("Ouro 18k", ouro_24k_preco, 0.75, "🟠"),
-        formatar_metal_teor("Prata 925", prata_pura_preco, 0.925, "⚪"),
+        formatar_metal_teor("Ouro 24k", ouro_preco, 1.00, "🟡"),
+        formatar_metal_teor("Ouro 18k", ouro_preco, 0.75, "🟠"),
+        formatar_metal_teor("Prata 925", prata_preco, 0.925, "⚪"),
     ]
 
     return "\n".join(linhas)
 
 
 def gerar_insight_estrategico():
-    return "\n".join([
-        "INSIGHT ESTRATÉGICO",
+    linhas = [
+        "━━━━━━━━━━━━━━━━━━━━",
+        "💡 INSIGHT ESTRATÉGICO",
         "━━━━━━━━━━━━━━━━━━━━",
         "",
-        "Em cenário de pressão macroeconômica e maior seletividade do consumo,",
-        "o crescimento saudável passa menos por vender a qualquer custo e mais por proteger margem, giro e eficiência.",
+        "Tendência: Crescimento do varejo físico impulsionado por shoppings com faturamento recorde, indicando recuperação e fortalecimento da experiência presencial.",
         "",
-        "Para negócios como varejo e operação multiunidade, a grande vantagem competitiva não está só na expansão,",
-        "mas na capacidade de transformar processo em previsibilidade.",
+        "Risco: A inflação e possíveis ajustes menores na Selic podem restringir o consumo, afetando a frequência e ticket médio no varejo.",
         "",
-        "PERGUNTA DO DIA:",
-        "qual gargalo hoje está travando mais resultado: estoque, equipe, conversão, despesas ou capital de giro?",
+        "Oportunidade: Investir em experiências diferenciadas no ponto de venda para fidelizar clientes, aproveitando a retomada do consumo presencial.",
         "",
-        "AÇÃO PRÁTICA:",
-        "escolha 1 alavanca operacional para melhorar ainda esta semana e acompanhe o impacto no caixa e na margem."
-    ])
+        "Ação prática: Desenvolver projetos que elevem a jornada de compra na Coralli, integrando atendimento personalizado e tecnologia para se destacar no ambiente físico antes que a concorrência reforce esse movimento.",
+    ]
+    return "\n".join(linhas)
 
 
 def gerar_mensagem_capricornio():
-    return "\n".join([
-        "CAPRICÓRNIO DO DIA",
+    linhas = [
+        "━━━━━━━━━━━━━━━━━━━━",
+        "♑ CAPRICÓRNIO DO DIA",
         "━━━━━━━━━━━━━━━━━━━━",
         "",
-        "Capricórnio, hoje sua determinação será seu maior trunfo para avançar nos objetivos profissionais.",
-        "Mantenha o foco nas prioridades e evite distrações para garantir resultados sólidos.",
-        "",
-        "Lembre-se:",
-        "disciplina e paciência são a base do seu sucesso duradouro."
-    ])
+        "Hoje, Capricórnio, sua disciplina será a chave para superar desafios com eficiência.",
+        "Mantenha o foco nas metas de longo prazo, pois a perseverança pavimenta o caminho do sucesso.",
+        "Use sua ambição para inspirar ações concretas e consistentes.",
+    ]
+    return "\n".join(linhas)
 
 
 def montar_briefing():
@@ -262,6 +254,7 @@ def montar_briefing():
     return "\n\n".join([
         cabecalho,
         montar_bloco_indicadores(),
+        montar_bloco_metais_joalheria(),
         gerar_insight_estrategico(),
         gerar_mensagem_capricornio(),
     ])
@@ -278,9 +271,10 @@ def responder_comando(texto: str):
             "Bem-vindo ao Agente Virtual Saulo.\n\n"
             "Comandos disponíveis:\n"
             "/briefing - envia o briefing completo\n"
-            "/indicadores - envia apenas os indicadores\n"
-            "/insight - envia apenas o insight estratégico\n"
-            "/capricornio - envia apenas a mensagem de Capricórnio"
+            "/indicadores - envia apenas indicadores de mercado\n"
+            "/metais - envia apenas metais para joalheria\n"
+            "/insight - envia apenas insight estratégico\n"
+            "/capricornio - envia apenas capricórnio do dia"
         )
 
     if texto_limpo in ["/briefing", "briefing"]:
@@ -288,6 +282,9 @@ def responder_comando(texto: str):
 
     if texto_limpo in ["/indicadores", "indicadores"]:
         return montar_bloco_indicadores()
+
+    if texto_limpo in ["/metais", "metais"]:
+        return montar_bloco_metais_joalheria()
 
     if texto_limpo in ["/insight", "insight"]:
         return gerar_insight_estrategico()
@@ -300,6 +297,7 @@ def responder_comando(texto: str):
         "Use:\n"
         "/briefing\n"
         "/indicadores\n"
+        "/metais\n"
         "/insight\n"
         "/capricornio"
     )
