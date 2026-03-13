@@ -1,0 +1,37 @@
+{
+  "usuario": {
+    "nome": "Saulo",
+    "perfil": "Empresário brasileiro, perfil estratégico, ambicioso, disciplinado, orientado a crescimento, marca, gestão, experiência do cliente e legado.",
+    "cidade_base": "Brasília",
+    "signo": "Capricórnio",
+    "interesses": [
+      "empreendedorismo",
+      "negócios",
+      "economia",
+      "varejo",
+      "shopping centers",
+      "restaurantes",
+      "bares",
+      "joias",
+      "luxo",
+      "entretenimento",
+      "inteligência artificial",
+      "geopolítica",
+      "Brasília"
+    ]
+  },
+  "coralli": {
+    "descricao": "Coralli é uma joalheria familiar em expansão, com foco em gestão profissional, crescimento sustentável, experiência de compra, mix de produtos e posicionamento forte."
+  },
+  "mane": {
+    "descricao": "Mané é uma plataforma de gastronomia, entretenimento e experiência, com foco em curadoria, ambiente, operação, marketing, eventos e crescimento consistente."
+  },
+  "discussoes_recentes": [
+    "Construção do Agente Virtual Saulo",
+    "Morning Brief das 06h",
+    "Notícias com links",
+    "Comandos estratégicos para negócios",
+    "Oi",
+    "/ideiasmané"
+  ]
+}
