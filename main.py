@@ -11,7 +11,7 @@ import yfinance as yf
 # =========================================================
 # CONFIGURAÇÕES
 # =========================================================
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "COLOQUE_SEU_TOKEN_AQUI")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "COLE_SEU_TOKEN_AQUI")
 CHAT_ID_PADRAO = os.getenv("TELEGRAM_CHAT_ID", "")
 
 API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
@@ -141,7 +141,7 @@ def formatar_variacao(variacao: float) -> str:
     return "• 0.00%"
 
 
-def formatar_linha_ativo(nome: str, simbolo: str, emoji: str, casas: int = 4):
+def formatar_ativo_brl(nome: str, simbolo: str, emoji: str, casas: int = 4):
     preco, variacao = pegar_preco_variacao(simbolo)
 
     if preco is None:
@@ -149,6 +149,30 @@ def formatar_linha_ativo(nome: str, simbolo: str, emoji: str, casas: int = 4):
 
     return (
         f"{emoji} {nome}: R$ {formatar_numero(preco, casas)}\n"
+        f"   {formatar_variacao(variacao)}"
+    )
+
+
+def formatar_ativo_usd(nome: str, simbolo: str, emoji: str, casas: int = 2):
+    preco, variacao = pegar_preco_variacao(simbolo)
+
+    if preco is None:
+        return f"{emoji} {nome}: n/d\n   n/d"
+
+    return (
+        f"{emoji} {nome}: US$ {formatar_numero(preco, casas)}\n"
+        f"   {formatar_variacao(variacao)}"
+    )
+
+
+def formatar_indice(nome: str, simbolo: str, emoji: str, casas: int = 2, sufixo: str = ""):
+    preco, variacao = pegar_preco_variacao(simbolo)
+
+    if preco is None:
+        return f"{emoji} {nome}: n/d\n   n/d"
+
+    return (
+        f"{emoji} {nome}: {formatar_numero(preco, casas)}{sufixo}\n"
         f"   {formatar_variacao(variacao)}"
     )
 
@@ -172,8 +196,55 @@ def formatar_metal_teor(nome: str, preco_base: float, teor: float, emoji: str):
 
 
 # =========================================================
-# BLOCOS
+# CONTEÚDO
 # =========================================================
+def montar_cabecalho():
+    hoje = datetime.now().strftime("%d/%m/%Y")
+    return "\n".join([
+        "☀️ AGENTE VIRTUAL SAULO | MORNING BRIEF EXECUTIVO",
+        hoje,
+        "",
+        "Leitura de até 10 minutos para começar o dia com repertório, contexto e direção."
+    ])
+
+
+def montar_bloco_noticias():
+    # Bloco editorial fixo. Depois podemos automatizar.
+    linhas = [
+        "━━━━━━━━━━━━━━━━━━━━",
+        "📰 RADAR DO DIA",
+        "━━━━━━━━━━━━━━━━━━━━",
+        "",
+        "• Macro Global",
+        "  Bolsas globais seguem sensíveis a juros, petróleo e novos dados econômicos.",
+        "",
+        "• Brasil",
+        "  O mercado acompanha os próximos passos da Selic e os impactos sobre crédito, consumo e investimento.",
+        "",
+        "• Negócios",
+        "  Empresas com maior disciplina comercial e menos desconto tendem a proteger melhor margem e geração de caixa.",
+        "",
+        "• Empreendedorismo",
+        "  Ambientes mais competitivos favorecem negócios com execução forte, diferenciação clara e rotina de gestão.",
+        "",
+        "• IA",
+        "  O avanço da inteligência artificial acelera produtividade, mas exige critério na adoção para gerar valor real.",
+        "",
+        "• Varejo & Consumo",
+        "  A experiência presencial segue relevante para marcas que conseguem unir atendimento, confiança e conversão.",
+        "",
+        "• Shopping Centers",
+        "  Os shoppings continuam como plataforma importante para fluxo qualificado, conveniência e presença de marca.",
+        "",
+        "• Restaurantes & Bares",
+        "  Operações com experiência consistente e boa leitura de ocasião de consumo seguem ganhando tração.",
+        "",
+        "• Brasília",
+        "  O ambiente local continua abrindo espaço para projetos com proposta clara, boa execução e identidade forte.",
+    ]
+    return "\n".join(linhas)
+
+
 def montar_bloco_indicadores():
     ouro_preco, ouro_variacao = pegar_metal_em_real_por_grama("GC=F")
     prata_preco, prata_variacao = pegar_metal_em_real_por_grama("SI=F")
@@ -183,9 +254,17 @@ def montar_bloco_indicadores():
         "INDICADORES DE MERCADO",
         "━━━━━━━━━━━━━━━━━━━━",
         "",
-        formatar_linha_ativo("Dólar", "USDBRL=X", "💵"),
+        formatar_ativo_brl("Dólar", "USDBRL=X", "💵"),
         "",
-        formatar_linha_ativo("Euro", "EURBRL=X", "💶"),
+        formatar_ativo_brl("Euro", "EURBRL=X", "💶"),
+        "",
+        formatar_indice("Ibovespa", "^BVSP", "📈", 2, " pts"),
+        "",
+        formatar_ativo_usd("Bitcoin", "BTC-USD", "₿", 2),
+        "",
+        formatar_ativo_usd("Petróleo WTI", "CL=F", "🛢", 2),
+        "",
+        formatar_indice("Nasdaq", "^IXIC", "💻", 2, " pts"),
         "",
         formatar_metal("Ouro", ouro_preco, ouro_variacao, "🥇"),
         "",
@@ -218,45 +297,51 @@ def gerar_insight_estrategico():
         "💡 INSIGHT ESTRATÉGICO",
         "━━━━━━━━━━━━━━━━━━━━",
         "",
-        "Tendência: Crescimento do varejo físico impulsionado por shoppings com faturamento recorde, indicando recuperação e fortalecimento da experiência presencial.",
+        "Tendência: Em um cenário mais competitivo, marcas fortes serão aquelas que combinarem eficiência operacional com experiência superior no ponto de venda.",
         "",
-        "Risco: A inflação e possíveis ajustes menores na Selic podem restringir o consumo, afetando a frequência e ticket médio no varejo.",
+        "Risco: Custo de capital mais alto, pressão sobre consumo e excesso de desconto podem corroer margem sem necessariamente construir recorrência.",
         "",
-        "Oportunidade: Investir em experiências diferenciadas no ponto de venda para fidelizar clientes, aproveitando a retomada do consumo presencial.",
+        "Oportunidade: Negócios que dominarem estoque, atendimento, giro e jornada do cliente tendem a capturar valor com mais consistência.",
         "",
-        "Ação prática: Desenvolver projetos que elevem a jornada de compra na Coralli, integrando atendimento personalizado e tecnologia para se destacar no ambiente físico antes que a concorrência reforce esse movimento.",
+        "Ação prática: Escolha hoje um único gargalo crítico da operação e trabalhe nele com foco total: conversão, estoque, despesas, equipe ou capital de giro.",
     ]
     return "\n".join(linhas)
 
 
-def gerar_mensagem_capricornio():
+def gerar_capricornio():
     linhas = [
         "━━━━━━━━━━━━━━━━━━━━",
         "♑ CAPRICÓRNIO DO DIA",
         "━━━━━━━━━━━━━━━━━━━━",
         "",
-        "Hoje, Capricórnio, sua disciplina será a chave para superar desafios com eficiência.",
-        "Mantenha o foco nas metas de longo prazo, pois a perseverança pavimenta o caminho do sucesso.",
-        "Use sua ambição para inspirar ações concretas e consistentes.",
+        "Hoje, Capricórnio, sua disciplina será a chave para transformar pressão em avanço concreto.",
+        "Mantenha o foco no que realmente importa e evite dispersão com tarefas que não movem o resultado.",
+        "Consistência, método e paciência seguem sendo seus maiores diferenciais.",
+    ]
+    return "\n".join(linhas)
+
+
+def gerar_foco_do_dia():
+    linhas = [
+        "━━━━━━━━━━━━━━━━━━━━",
+        "📌 FOCO DO DIA",
+        "━━━━━━━━━━━━━━━━━━━━",
+        "",
+        "Escolha uma única decisão que realmente mova o negócio hoje.",
+        "O resto é ruído."
     ]
     return "\n".join(linhas)
 
 
 def montar_briefing():
-    agora = datetime.now().strftime("%d/%m/%Y %H:%M")
-
-    cabecalho = "\n".join([
-        "SAULO MORNING BRIEF",
-        "━━━━━━━━━━━━━━━━━━━━",
-        f"🕒 Atualizado em: {agora}",
-    ])
-
     return "\n\n".join([
-        cabecalho,
+        montar_cabecalho(),
+        montar_bloco_noticias(),
         montar_bloco_indicadores(),
         montar_bloco_metais_joalheria(),
         gerar_insight_estrategico(),
-        gerar_mensagem_capricornio(),
+        gerar_capricornio(),
+        gerar_foco_do_dia(),
     ])
 
 
@@ -271,13 +356,20 @@ def responder_comando(texto: str):
             "Bem-vindo ao Agente Virtual Saulo.\n\n"
             "Comandos disponíveis:\n"
             "/briefing - envia o briefing completo\n"
+            "/mensagemdodia - envia o briefing completo\n"
             "/indicadores - envia apenas indicadores de mercado\n"
             "/metais - envia apenas metais para joalheria\n"
             "/insight - envia apenas insight estratégico\n"
-            "/capricornio - envia apenas capricórnio do dia"
+            "/capricornio - envia apenas capricórnio do dia\n"
+            "/focododia - envia apenas o foco do dia"
         )
 
-    if texto_limpo in ["/briefing", "briefing"]:
+    if texto_limpo in [
+        "/briefing", "briefing",
+        "/mensagemdodia", "mensagemdodia",
+        "/morningbrief", "morningbrief",
+        "/brief", "brief"
+    ]:
         return montar_briefing()
 
     if texto_limpo in ["/indicadores", "indicadores"]:
@@ -290,16 +382,21 @@ def responder_comando(texto: str):
         return gerar_insight_estrategico()
 
     if texto_limpo in ["/capricornio", "capricornio"]:
-        return gerar_mensagem_capricornio()
+        return gerar_capricornio()
+
+    if texto_limpo in ["/focododia", "focododia"]:
+        return gerar_foco_do_dia()
 
     return (
         "Comando não reconhecido.\n\n"
         "Use:\n"
         "/briefing\n"
+        "/mensagemdodia\n"
         "/indicadores\n"
         "/metais\n"
         "/insight\n"
-        "/capricornio"
+        "/capricornio\n"
+        "/focododia"
     )
 
 
